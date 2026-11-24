@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.obsidian/workspace*.json
+.ai/logs/snapshots/*.tmp
+.DS_Store
+Thumbs.db

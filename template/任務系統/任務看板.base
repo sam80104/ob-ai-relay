@@ -1,0 +1,191 @@
+filters:
+  or:
+    - type == "任務卡"
+    - 卡別 == "專案卡"
+formulas:
+  剩幾天: if(due, (date(due) - today()).days, "")
+  逾期: if(due, date(due) < today() && status != "完成" && status != "取消", false)
+  象限: if(status == "完成", "✅ 完成", if(priority <= 2, if(due && (date(due) - today()).days <= 3, "🔥 重要緊急", "⭐ 重要不緊急"), if(due && (date(due) - today()).days <= 3, "⚡ 緊急不重要", "💤 不急不重要")))
+  燈號: if(status == "完成", "✅", if(status == "取消", "✖", if(due, if(date(due) < today(), "🔴", if((date(due) - today()).days <= 1, "🟠", "🟢")), "⚪")))
+  階段: if(status == "完成", "已完成", if(status == "取消", "取消", if(status == "等別人" || status == "等待中", "等別人", if(status == "之後", "待做", "執行中"))))
+  階段序: if(status == "完成", 4, if(status == "取消", 5, if(status == "等別人" || status == "等待中", 3, if(status == "之後", 2, 1))))
+  勾選: if(status == "完成", "☑", if(status == "取消", "☒", "☐"))
+  已做: if(status == "完成", 1, 0)
+  排程: if(status == "今天" || status == "明天" || status == "本週", status, "")
+properties:
+  note.status:
+    displayName: 狀態
+  note.owner:
+    displayName: 誰做
+  note.due:
+    displayName: 期限
+  note.project:
+    displayName: 專案
+  note.next:
+    displayName: 下一步
+  note.名稱:
+    displayName: 專案
+  note.現況:
+    displayName: 現況
+  note.截止:
+    displayName: 截止
+  formula.剩幾天:
+    displayName: 剩幾天
+  formula.燈號:
+    displayName: 燈
+  formula.象限:
+    displayName: 象限
+  formula.階段:
+    displayName: 階段
+  formula.勾選:
+    displayName: 完成
+  formula.排程:
+    displayName: 排程
+views:
+  - type: kanban
+    name: 專案卡
+    filters:
+      and:
+        - 卡別 == "專案卡"
+    groupBy:
+      property: status
+      direction: ASC
+    groupOrder:
+      - 進行中
+      - 等待中
+      - 評估中
+      - 暫緩
+      - 已完成
+    order:
+      - 名稱
+      - 現況
+      - 截止
+  - type: table
+    name: 我要做
+    filters:
+      and:
+        - type == "任務卡"
+        - owner == "我"
+        - status != "完成"
+        - status != "取消"
+    order:
+      - formula.燈號
+      - file.name
+      - project
+      - next
+      - due
+      - formula.排程
+    sort:
+      - property: formula.階段序
+        direction: ASC
+      - property: due
+        direction: ASC
+  - type: table
+    name: 依專案
+    filters:
+      and:
+        - type == "任務卡"
+        - status != "完成"
+        - status != "取消"
+    groupBy:
+      property: project
+      direction: ASC
+    order:
+      - formula.勾選
+      - formula.階段
+      - file.name
+      - next
+      - due
+      - owner
+      - formula.排程
+    sort:
+      - property: formula.階段序
+        direction: ASC
+      - property: due
+        direction: ASC
+  - type: table
+    name: 依階段
+    filters:
+      and:
+        - type == "任務卡"
+        - status != "取消"
+    groupBy:
+      property: formula.階段
+      direction: ASC
+    groupOrder:
+      - 執行中
+      - 待做
+      - 等別人
+      - 已完成
+      - 取消
+    order:
+      - project
+      - file.name
+      - next
+      - due
+      - owner
+    sort:
+      - property: project
+        direction: ASC
+      - property: due
+        direction: ASC
+  - type: table
+    name: 逾期要追
+    filters:
+      and:
+        - type == "任務卡"
+        - formula.逾期 == true
+    order:
+      - formula.燈號
+      - file.name
+      - owner
+      - project
+      - due
+      - next
+    sort:
+      - property: due
+        direction: ASC
+  - type: table
+    name: 四象限
+    filters:
+      and:
+        - type == "任務卡"
+        - status != "完成"
+        - status != "取消"
+    groupBy:
+      property: formula.象限
+      direction: ASC
+    order:
+      - formula.燈號
+      - file.name
+      - project
+      - next
+      - due
+      - owner
+  - type: table
+    name: 本案
+    filters:
+      and:
+        - type == "任務卡"
+        - project == this.名稱
+    groupBy:
+      property: formula.階段
+      direction: ASC
+    groupOrder:
+      - 執行中
+      - 待做
+      - 等別人
+      - 已完成
+      - 取消
+    order:
+      - formula.勾選
+      - file.name
+      - next
+      - status
+      - due
+      - formula.已做
+    sort:
+      - property: due
+        direction: ASC
+    summaries:
+      formula.已做: Sum
